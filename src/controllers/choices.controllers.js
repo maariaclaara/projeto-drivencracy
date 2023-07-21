@@ -10,18 +10,15 @@ export async function newChoices(req, res) {
   try {
     const poll = await db.collection("polls").findOne({ _id: new ObjectId(pollId) });
     if (!poll) {
-      return res.status(404).send("Poll not found!");
+      return res.status(404).send("A enquete não existe!");
     }
     if (dayjs(poll.expireAt) < dayjs()) {
       return res.status(403).send("A enquete está expirada!");
     }
-    if (title === "") {
-      return res.status(422).send("O título não pode estar vazio!");
-    }
 
     const choice = await db.collection("choices").findOne({ title });
     if (choice) {
-      return res.status(409).send("A escolha do título já existe!");
+      return res.status(409).send("A escolha já existe!");
     }
 
     const createChoice = { title, pollId };
@@ -42,12 +39,12 @@ export async function newVotes(req, res) {
     try {
       const choice = await db.collection("choices").findOne({ _id: new ObjectId(id) });
       if (!choice) {
-        return res.status(404).send("Choice not found!");
+        return res.status(404).send("A opção não é válida!");
       }
   
       const poll = await db.collection("polls").findOne({ _id: new ObjectId(choice.pollId) });
       if (!poll) {
-        return res.status(404).send("Poll not found!");
+        return res.status(404).send("A opção não é válida!");
       }
   
       const expired = now.isAfter(dayjs(poll.expireAt));

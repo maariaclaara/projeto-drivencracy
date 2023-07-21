@@ -5,10 +5,6 @@ import  db  from "../database/database.connection.js";
 export async function newPolls(req, res) {
   const { title, expireAt } = req.body;
 
-  if (title === "") {
-    return res.status(422).send("O título não pode estar vazio!");
-  }
-
   const expire = expireAt
     ? dayjs(expireAt).format("YYYY-MM-DD HH:mm")
     : dayjs().add(30, "day").format("YYYY-MM-DD HH:mm");
@@ -33,7 +29,7 @@ export async function getPolls(req, res) {
   }
 
   
-  export async function getChoice(req, res) {
+  export async function getChoices(req, res) {
     const { id } = req.params;
   
     try {
@@ -50,27 +46,26 @@ export async function getPolls(req, res) {
   }
 
 
-  export async function getResul(req, res) {
+  export async function getResults(req, res) {
     const { id } = req.params;
   
     try {
       const poll = await db.collection("polls").findOne({ _id: new ObjectId(id) });
-  
       if (!poll) {
-        return res.status(404).send("A enquete não existe!");
+        return res.status(404).send("A opção não é válida!");
       }
+
       const choices = await db.collection("choices").find({ pollId: id }).toArray();
-      const ids = choices.map(choice => choice._id.toString());
-  
-      const vote = await db.collection("votes").find({ choiceId: { $in: ids }}).toArray();
-  
-      const count = choices.map((choice) => {
-        const countVote = vote.filter((vote) => vote.choiceId === choice._id.toString()).length;
+      const choicesIds = choices.map(choice => choice._id.toString());
+      const votes = await db.collection("votes").find({ choiceId: { $in: choicesIds }}).toArray();
+
+      const voteCount = choices.map((choice) => {
+        const count = votes.filter((vote) => vote.choiceId === choice._id.toString()).length;
         return { ...choice, count };
       });
   
-      const voted = count.reduce((max, choice) => {
-        return choice.countVote > max.countVote ? choice : max;
+      const mostVotedChoice = voteCount.reduce((max, choice) => {
+        return choice.count > max.count ? choice : max;
       }, { count: 0 });
   
       const response = {
@@ -78,8 +73,8 @@ export async function getPolls(req, res) {
         title: poll.title,
         expireAt: poll.expireAt,
         result: {
-          title: voted.title,
-          votes: voted.count,
+          title: mostVotedChoice.title,
+          votes: mostVotedChoice.count,
         },
       };
   
